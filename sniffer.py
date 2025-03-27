@@ -1,7 +1,6 @@
 import argparse
 from scapy.all import sniff, wrpcap
 from scapy.interfaces import get_working_ifaces
-import time
 
 def list_interfaces():
     print("Available interfaces:")
@@ -13,15 +12,18 @@ def capture_traffic(interface, output_file, duration=None, packet_count=None):
     print("Press Ctrl+C to stop capture and save to file.")
     
     try:
-        count = 0 if duration else packet_count
+        sniff_kwargs = {
+            'iface': interface,
+            'prn': lambda pkt: print(f"Captured packet: {pkt.summary()}"),
+            'store': True
+        }
         
-        packets = sniff(
-            iface=interface,
-            timeout=duration,
-            count=count,
-            prn=lambda pkt: print(f"Captured packet: {pkt.summary()}"),
-            store=True
-        )
+        if duration:
+            sniff_kwargs['timeout'] = duration
+        if packet_count:
+            sniff_kwargs['count'] = packet_count
+        
+        packets = sniff(**sniff_kwargs)
         
         wrpcap(output_file, packets)
         print(f"\nCapture complete. Saved {len(packets)} packets to {output_file}")
